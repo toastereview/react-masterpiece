@@ -3,7 +3,7 @@ import { useState, useEffect, useMemo } from "react";
 export const MAIN_OP_CH_CODES = ["", "00", "BV"];
 const MAIN_PR_CODES = ["PARIS", "LYON", "MARSEILLE"];
 
-type SearchResultItemOperationalPoint = {
+type OperationalPoint = {
   ch: string;
   ci: number;
   name: string;
@@ -31,14 +31,16 @@ function useSearchOperationalPoint({
   initialString = "",
   initialChCodeFilter: initialChString,
 }: SearchOperationalPoint = {}) {
-  const [string, setString] = useState(initialString);
-  const [codeString, setCodeString] = useState(initialChString);
-  const [results, setResults] = useState<any[]>([]);
+  const [ci, setCi] = useState(initialString);
+  const [ch, setCh] = useState(initialChString);
+  const [results, setResults] = useState<OperationalPoint[]>(
+    []
+  );
 
   const [filteredAndSortedSearchResults, setFilteredAndSortedSearchResults] =
-    useState<any[]>([]);
+    useState<OperationalPoint[]>([]);
 
-  const debouncedSearchTerm = useDebounce(string, 150);
+  const debouncedSearchTerm = useDebounce(ci, 150);
 
   const searchOperationalPoints = async () => {
     try {
@@ -47,7 +49,7 @@ function useSearchOperationalPoint({
           if (!res.ok) {
             throw new Error(`Error fetching image: ${res.statusText}`);
           }
-          return res.json() as Promise<any[]>;
+          return res.json() as Promise<OperationalPoint[]>;
         }
       );
       setResults(results);
@@ -78,19 +80,19 @@ function useSearchOperationalPoint({
     const sortResults = [...results].sort(sortOP);
     return sortResults.reduce((acc, curr) => {
       if (
-        codeString &&
-        MAIN_OP_CH_CODES.includes(codeString) &&
+        ch &&
+        MAIN_OP_CH_CODES.includes(ch) &&
         MAIN_OP_CH_CODES.includes(curr.ch)
       )
         acc.push(curr);
 
-      if (codeString === undefined) return acc;
+      if (ch === undefined) return acc;
 
       if (
         curr.ch
           .toLocaleLowerCase()
           .trim()
-          .includes(codeString.trim().toLowerCase())
+          .includes(ch.trim().toLowerCase())
       )
         acc.push(curr);
       return acc;
@@ -102,7 +104,7 @@ function useSearchOperationalPoint({
       const sortedList = sortResults(results);
       return sortedList;
     });
-  }, [results, codeString]);
+  }, [results, ch]);
 
   useEffect(() => {
     if (debouncedSearchTerm) {
@@ -113,17 +115,16 @@ function useSearchOperationalPoint({
   }, [debouncedSearchTerm]);
 
   useEffect(() => {
-    if (results.length === 0 && string !== undefined) setCodeString(undefined);
+    if (results.length === 0 && ci !== undefined) setCh(undefined);
   }, [results]);
 
   return {
-    string,
-    codeString,
+    string: ci,
+    codeString: ch,
     sortedSearchResults,
-    filteredAndSortedSearchResults:
-      filteredAndSortedSearchResults as SearchResultItemOperationalPoint[],
-    setString,
-    setCodeString,
+    filteredAndSortedSearchResults,
+    setCi,
+    setCh,
     setResults,
   };
 }
@@ -134,8 +135,8 @@ const MapSearchOperationalPoint = () => {
     string,
     codeString,
     filteredAndSortedSearchResults,
-    setString,
-    setCodeString,
+    setCi,
+    setCh: setCh,
   } = useSearchOperationalPoint();
 
   const onClick = (index: number) => {
@@ -154,7 +155,7 @@ const MapSearchOperationalPoint = () => {
               value={string}
               onChange={(e) => {
                 setSelected(-1);
-                setString(e?.target?.value);
+                setCi(e?.target?.value);
                 console.log("hello");
               }}
             />
@@ -164,7 +165,7 @@ const MapSearchOperationalPoint = () => {
               id="operational-point-ch-code"
               type="text"
               onChange={(e) => {
-                setCodeString(e?.target?.value || undefined);
+                setCh(e?.target?.value || undefined);
                 console.log("nice");
               }}
               value={codeString}
